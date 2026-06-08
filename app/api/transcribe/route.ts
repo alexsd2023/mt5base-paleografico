@@ -9,55 +9,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing text' }, { status: 400 })
   }
 
-  const modelId = process.env.HF_MODEL_ID
-  const token = process.env.HF_TOKEN
+  const spaceId = process.env.HF_SPACE_ID  // alezsd/mt5-htr-paleografico
+  const token   = process.env.HF_TOKEN
 
-  if (!modelId || !token) {
-    return NextResponse.json(
-      { error: 'HF_MODEL_ID or HF_TOKEN not configured' },
-      { status: 500 }
-    )
+  if (!spaceId) {
+    return NextResponse.json({ error: 'HF_SPACE_ID not configured' }, { status: 500 })
   }
 
-  const hfUrl = `https://api-inference.huggingface.co/models/${modelId}`
+  // Gradio API endpoint
+  const url = `https://${spaceId.replace('/', '-')}.hf.space/run/predict`
 
   try {
-    const hfRes = await fetch(hfUrl, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
-        inputs: text,
-        parameters: {
-          max_new_tokens,
-          num_beams: 4,
-          early_stopping: true,
-        },
-        options: { wait_for_model: true },
+        data: [text, max_new_tokens, 4],  // [input_text, max_tokens, num_beams]
       }),
     })
 
-    if (!hfRes.ok) {
-      const err = await hfRes.json().catch(() => ({}))
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
       return NextResponse.json(
-        { error: (err as any).error || `HF error ${hfRes.status}` },
-        { status: hfRes.status }
+        { error: (err as any).error || `Space error ${res.status}` },
+        { status: res.status }
       )
     }
 
-    const data = await hfRes.json()
-
-    // HF seq2seq returns [{ generated_text: "..." }]
-    let output = ''
-    if (Array.isArray(data) && data[0]?.generated_text !== undefined) {
-      output = data[0].generated_text
-    } else if (data?.generated_text) {
-      output = data.generated_text
-    } else {
-      output = JSON.stringify(data)
-    }
+    const data = await res.json()
+    // Gradio devuelve { data: ["resultado"] }
+    const output = data?.data?.[0] ?? ''
 
     return NextResponse.json({ output })
   } catch (e: any) {
