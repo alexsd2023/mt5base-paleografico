@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 60
+
 export async function POST(req: NextRequest) {
   const { text, max_new_tokens = 128 } = await req.json()
 
