@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
   const baseUrl = 'https://alezsd-mt5-htr-paleografico.hf.space'
 
   try {
-    // Paso 1: iniciar el job en la queue de Gradio 5
-    const queueRes = await fetch(`${baseUrl}/queue/join`, {
+    // Paso 1: lanzar la llamada, obtener event_id
+    const callRes = await fetch(`${baseUrl}/gradio_api/call/transcribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -22,47 +22,21 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         data: [text, max_new_tokens, 4],
-        fn_index: 0,
-        session_hash: Math.random().toString(36).slice(2),
       }),
     })
 
-    if (!queueRes.ok) {
-      // Fallback: intentar con /run/predict directo
-      const predictRes = await fetch(`${baseUrl}/run/predict`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          data: [text, max_new_tokens, 4],
-          fn_index: 0,
-        }),
-      })
-
-      if (!predictRes.ok) {
-        const err = await predictRes.json().catch(() => ({}))
-        return NextResponse.json(
-          { error: `Space error ${predictRes.status}: ${JSON.stringify(err)}` },
-          { status: predictRes.status }
-        )
-      }
-
-      const predictData = await predictRes.json()
-      const output = predictData?.data?.[0] ?? ''
-      return NextResponse.json({ output })
+    if (!callRes.ok) {
+      const err = await callRes.json().catch(() => ({}))
+      return NextResponse.json(
+        { error: `Space error ${callRes.status}: ${JSON.stringify(err)}` },
+        { status: callRes.status }
+      )
     }
 
-    const queueData = await queueRes.json()
-    const eventId = queueData?.event_id
+    const { event_id } = await callRes.json()
 
-    if (!eventId) {
-      return NextResponse.json({ error: 'No event_id from queue' }, { status: 500 })
-    }
-
-    // Paso 2: esperar resultado via SSE
-    const streamRes = await fetch(`${baseUrl}/queue/data?session_hash=${queueData.session_hash}`, {
+    // Paso 2: leer el resultado via SSE
+    const streamRes = await fetch(`${baseUrl}/gradio_api/call/transcribe/${event_id}`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -76,15 +50,13 @@ export async function POST(req: NextRequest) {
       const { done, value } = await reader.read()
       if (done) break
       const chunk = decoder.decode(value)
-      const lines = chunk.split('\n')
-      for (const line of lines) {
+      for (const line of chunk.split('\n')) {
         if (line.startsWith('data: ')) {
           try {
             const parsed = JSON.parse(line.slice(6))
-            if (parsed.msg === 'process_completed') {
-              output = parsed.output?.data?.[0] ?? ''
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              output = parsed[0]
               reader.cancel()
-              break
             }
           } catch {}
         }
