@@ -21,12 +21,13 @@ el dho don rodrigo de çisneros vesino dela dha villa
 por ser cosa tan necessaria e importante al seruicio de su mag̃d`
 
 function normalize(s: string): string {
-  return s.normalize("NFC").trim()
+  return s.normalize('NFC').trim()
 }
 
 function diffWords(original: string, corrected: string): DiffToken[] {
-  const a = normalize(original).split(/(\s+)/)
-  const b = normalize(corrected).split(/(\s+)/)
+  const a = normalize(original).split(' ').filter(w => w.length > 0)
+  const b = normalize(corrected).split(' ').filter(w => w.length > 0)
+
   const dp = Array.from({ length: a.length + 1 }, (_, i) =>
     Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
   )
@@ -35,6 +36,7 @@ function diffWords(original: string, corrected: string): DiffToken[] {
       dp[i][j] = a[i-1] === b[j-1]
         ? dp[i-1][j-1]
         : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
+
   const tokens: DiffToken[] = []
   let i = a.length, j = b.length
   while (i > 0 || j > 0) {
@@ -57,9 +59,11 @@ function DiffView({ original, corrected }: { original: string; corrected: string
       <div className={styles.diffCol}>
         <span className={styles.diffLabel}>original</span>
         <p className={styles.diffText}>
-          {tokens.map((t, i) => t.type === 'removed'
-            ? <span key={i} className={styles.removed}>{t.text}</span>
-            : t.type === 'equal' ? <span key={i}>{t.text}</span> : null)}
+          {tokens.map((t, i) => {
+            if (t.type === 'removed') return <span key={i} className={styles.removed}>{t.text} </span>
+            if (t.type === 'equal')   return <span key={i}>{t.text} </span>
+            return null
+          })}
         </p>
       </div>
       <div className={styles.diffCol}>
@@ -67,9 +71,11 @@ function DiffView({ original, corrected }: { original: string; corrected: string
           corregido {hasChanges && <span className={styles.diffBadge}>con cambios</span>}
         </span>
         <p className={styles.diffText}>
-          {tokens.map((t, i) => t.type === 'added'
-            ? <span key={i} className={styles.added}>{t.text}</span>
-            : t.type === 'equal' ? <span key={i}>{t.text}</span> : null)}
+          {tokens.map((t, i) => {
+            if (t.type === 'added') return <span key={i} className={styles.added}>{t.text} </span>
+            if (t.type === 'equal') return <span key={i}>{t.text} </span>
+            return null
+          })}
         </p>
       </div>
     </div>
