@@ -319,7 +319,7 @@ export default function BatchPage() {
         <div style={css.uploadBox}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={css.label}>Archivos HTR</span>
-            <span style={css.hint}>texto paleográfico .txt</span>
+            <span style={css.hint}>.htr.txt</span>
           </div>
           <input type="file" accept=".txt" multiple onChange={e => setHtrFiles(Array.from(e.target.files || []))} style={{ fontSize: '12px', color: 'var(--ink-muted)' }} />
           {htrFiles.length > 0 && (
@@ -331,7 +331,7 @@ export default function BatchPage() {
         <div style={css.uploadBox}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={css.label}>Archivos GT</span>
-            <span style={css.hint}>groundtruth (mismo nombre)</span>
+            <span style={css.hint}>.gt.txt</span>
           </div>
           <input type="file" accept=".txt" multiple onChange={e => setGtFiles(Array.from(e.target.files || []))} style={{ fontSize: '12px', color: 'var(--ink-muted)' }} />
           {gtFiles.length > 0 && (
@@ -341,6 +341,12 @@ export default function BatchPage() {
           )}
         </div>
       </div>
+      <p style={{ fontSize: '11px', color: 'var(--ink-faint)', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+        Los archivos homólogos deben tener una estructura como por ejemplo{' '}
+        <code style={{ fontFamily: 'JetBrains Mono, monospace', background: 'var(--bg-secondary)', padding: '1px 5px', borderRadius: '3px' }}>doc_1194.htr.txt</code>
+        {' '}y{' '}
+        <code style={{ fontFamily: 'JetBrains Mono, monospace', background: 'var(--bg-secondary)', padding: '1px 5px', borderRadius: '3px' }}>doc_1194.gt.txt</code>
+      </p>
 
       <div style={css.toolbar}>
         <button style={running ? css.btnStop : css.btnRun} onClick={run} disabled={!htrFiles.length && !running}>
