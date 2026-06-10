@@ -12,7 +12,7 @@ interface LineResult {
   error?: string
 }
 
-type DiffToken = { text: string; normalizedText: string; type: 'equal' | 'removed' | 'added' }
+type DiffToken = { text: string; type: 'equal' | 'removed' | 'added' }
 
 const EXAMPLE = `q̃ no̊ ay otro remedio sino la muertte
 dize q̃ la gente desta tierra esta muy alcãçada
@@ -21,7 +21,7 @@ el dho don rodrigo de çisneros vesino dela dha villa
 por ser cosa tan necessaria e importante al seruicio de su mag̃d`
 
 function norm(s: string): string {
-  return s.normalize('NFKD').toLowerCase().trim()
+  return s.normalize('NFC').toLowerCase().trim()
 }
 
 function diffWords(original: string, corrected: string): DiffToken[] {
@@ -31,25 +31,35 @@ function diffWords(original: string, corrected: string): DiffToken[] {
   const bNorm = bWords.map(norm)
   const m = aWords.length, n = bWords.length
 
-  // LCS sobre palabras normalizadas
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+  const dp = Array.from({ length: m + 1 }, (_, i) =>
     Array.from({ length: n + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0)
   )
   for (let i = 1; i <= m; i++)
-    for (let j = 1; j <= n; j++)
-      dp[i][j] = aNorm[i-1] === bNorm[j-1]
-        ? dp[i-1][j-1]
-        : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
+    for (let j = 1; j <= n; j++) {
+      if (aNorm[i-1] === bNorm[j-1]) {
+        dp[i][j] = dp[i-1][j-1]
+      } else {
+        dp[i][j] = Math.min(
+          dp[i-1][j] + 1,
+          dp[i][j-1] + 1,
+          dp[i-1][j-1] + 2
+        )
+      }
+    }
 
   const tokens: DiffToken[] = []
   let i = m, j = n
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && aNorm[i-1] === bNorm[j-1]) {
-      tokens.unshift({ text: bWords[j-1], normalizedText: bNorm[j-1], type: 'equal' }); i--; j--
-    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
-      tokens.unshift({ text: bWords[j-1], normalizedText: bNorm[j-1], type: 'added' }); j--
+      tokens.unshift({ text: bWords[j-1], type: 'equal' }); i--; j--
+    } else if (i > 0 && j > 0 && dp[i][j] === dp[i-1][j-1] + 2) {
+      tokens.unshift({ text: bWords[j-1], type: 'added' })
+      tokens.unshift({ text: aWords[i-1], type: 'removed' })
+      i--; j--
+    } else if (j > 0 && (i === 0 || dp[i][j-1] + 1 <= dp[i-1][j] + 1)) {
+      tokens.unshift({ text: bWords[j-1], type: 'added' }); j--
     } else {
-      tokens.unshift({ text: aWords[i-1], normalizedText: aNorm[i-1], type: 'removed' }); i--
+      tokens.unshift({ text: aWords[i-1], type: 'removed' }); i--
     }
   }
   return tokens
