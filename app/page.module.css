@@ -53,7 +53,8 @@
 .btnSecondary:disabled { opacity: 0.35; cursor: not-allowed; }
 .stat { margin-left: auto; font-size: 12px; color: var(--ink-muted); }
 
-/* Diff highlight — solo en columna derecha */
+/* Diff highlight */
+.removed { text-decoration: line-through; color: var(--error); background: var(--error-bg); border-radius: 2px; padding: 0 1px; }
 .added { text-decoration: underline; text-underline-offset: 3px; color: var(--success); background: var(--success-bg); border-radius: 2px; padding: 0 1px; }
 
 /* States */
