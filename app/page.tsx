@@ -41,7 +41,7 @@ function levenshtein(a: string[], b: string[]): number {
 
 function calcCER(pred: string, ref: string): number {
   if (!ref) return pred ? 1 : 0
-  return levenshtein([...pred], [...ref]) / ref.length
+  return levenshtein(Array.from(pred), Array.from(ref)) / ref.length
 }
 
 function calcWER(pred: string, ref: string): number {
@@ -77,7 +77,7 @@ function calcChrF(pred: string, ref: string, n = 6, beta = 2): number {
 }
 
 function corpusCER(lines: LineResult[]): number {
-  const totalEdit = lines.reduce((s, l) => s + levenshtein([...l.output], [...l.gt]), 0)
+  const totalEdit = lines.reduce((s, l) => s + levenshtein(Array.from(l.output), Array.from(l.gt)), 0)
   const totalRef  = lines.reduce((s, l) => s + l.gt.length, 0)
   return totalRef ? totalEdit / totalRef : 0
 }
