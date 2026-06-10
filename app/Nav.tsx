@@ -9,7 +9,7 @@ export default function Nav() {
   return (
     <nav className={styles.nav}>
       <div className={styles.inner}>
-        <span className={styles.brand}>📜 Paleográfico</span>
+        <span className={styles.brand}> Corrector Paleográfico Documentos Siglo <XVI-XVIII></XVI-XVIII></span>
         <div className={styles.tabs}>
           <Link href="/" className={`${styles.tab} ${path === '/' ? styles.active : ''}`}>
             Línea a línea
