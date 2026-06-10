@@ -12,7 +12,7 @@ interface LineResult {
   error?: string
 }
 
-type DiffToken = { text: string; type: 'equal' | 'removed' | 'added' }
+type DiffToken = { text: string; normalizedText: string; type: 'equal' | 'removed' | 'added' }
 
 const EXAMPLE = `q̃ no̊ ay otro remedio sino la muertte
 dize q̃ la gente desta tierra esta muy alcãçada
@@ -20,34 +20,36 @@ fue p̃sso enla çibdad de toledo
 el dho don rodrigo de çisneros vesino dela dha villa
 por ser cosa tan necessaria e importante al seruicio de su mag̃d`
 
+function norm(s: string): string {
+  return s.normalize('NFKD').toLowerCase().trim()
+}
+
 function diffWords(original: string, corrected: string): DiffToken[] {
-  const a = original.trim().split(' ').filter(Boolean)
-  const b = corrected.trim().split(' ').filter(Boolean)
-  const m = a.length, n = b.length
-  const dp: number[][] = []
-  for (let i = 0; i <= m; i++) {
-    dp[i] = []
-    for (let j = 0; j <= n; j++) {
-      if (i === 0) dp[i][j] = j
-      else if (j === 0) dp[i][j] = i
-      else dp[i][j] = 0
-    }
-  }
+  const aWords = original.trim().split(/\s+/).filter(Boolean)
+  const bWords = corrected.trim().split(/\s+/).filter(Boolean)
+  const aNorm = aWords.map(norm)
+  const bNorm = bWords.map(norm)
+  const m = aWords.length, n = bWords.length
+
+  // LCS sobre palabras normalizadas
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0)
+  )
   for (let i = 1; i <= m; i++)
     for (let j = 1; j <= n; j++)
-      dp[i][j] = a[i-1] === b[j-1]
+      dp[i][j] = aNorm[i-1] === bNorm[j-1]
         ? dp[i-1][j-1]
         : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
 
   const tokens: DiffToken[] = []
   let i = m, j = n
   while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && a[i-1] === b[j-1]) {
-      tokens.unshift({ text: a[i-1], type: 'equal' }); i--; j--
+    if (i > 0 && j > 0 && aNorm[i-1] === bNorm[j-1]) {
+      tokens.unshift({ text: bWords[j-1], normalizedText: bNorm[j-1], type: 'equal' }); i--; j--
     } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
-      tokens.unshift({ text: b[j-1], type: 'added' }); j--
+      tokens.unshift({ text: bWords[j-1], normalizedText: bNorm[j-1], type: 'added' }); j--
     } else {
-      tokens.unshift({ text: a[i-1], type: 'removed' }); i--
+      tokens.unshift({ text: aWords[i-1], normalizedText: aNorm[i-1], type: 'removed' }); i--
     }
   }
   return tokens
@@ -56,14 +58,13 @@ function diffWords(original: string, corrected: string): DiffToken[] {
 function DiffOutput({ original, corrected }: { original: string; corrected: string }) {
   const tokens = diffWords(original, corrected)
   return (
-    <p style={{ margin: 0, lineHeight: 1.6 }}>
+    <p style={{ margin: 0, lineHeight: 1.6, fontFamily: 'inherit', fontSize: 'inherit' }}>
       {tokens.map((t, i) => {
+        if (t.type === 'removed') return null
         const space = i < tokens.length - 1 ? ' ' : ''
         if (t.type === 'added')
-          return <span key={i} className={styles.added}>{t.text}</span>
-        if (t.type === 'equal')
-          return <span key={i}>{t.text}{space}</span>
-        return null
+          return <span key={i} className={styles.added}>{t.text}{space}</span>
+        return <span key={i}>{t.text}{space}</span>
       })}
     </p>
   )
