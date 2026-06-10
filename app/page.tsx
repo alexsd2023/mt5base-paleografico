@@ -206,7 +206,7 @@ export default function Home() {
             className={styles.textarea}
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={`Pega el texto paleográfico aquí.\n\nCada línea se procesará de\nforma independiente.`}
+            placeholder='Pega o añade el texto aquí…'
             spellCheck={false}
           />
         </div>
