@@ -20,9 +20,13 @@ fue p̃sso enla çibdad de toledo
 el dho don rodrigo de çisneros vesino dela dha villa
 por ser cosa tan necessaria e importante al seruicio de su mag̃d`
 
+function normalize(s: string): string {
+  return s.normalize("NFC").trim()
+}
+
 function diffWords(original: string, corrected: string): DiffToken[] {
-  const a = original.split(/(\s+)/)
-  const b = corrected.split(/(\s+)/)
+  const a = normalize(original).split(/(\s+)/)
+  const b = normalize(corrected).split(/(\s+)/)
   const dp = Array.from({ length: a.length + 1 }, (_, i) =>
     Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
   )
