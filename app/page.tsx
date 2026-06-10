@@ -20,25 +20,27 @@ fue p̃sso enla çibdad de toledo
 el dho don rodrigo de çisneros vesino dela dha villa
 por ser cosa tan necessaria e importante al seruicio de su mag̃d`
 
-function normalize(s: string): string {
-  return s.normalize('NFC').trim()
-}
-
 function diffWords(original: string, corrected: string): DiffToken[] {
-  const a = normalize(original).split(' ').filter(w => w.length > 0)
-  const b = normalize(corrected).split(' ').filter(w => w.length > 0)
-
-  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
-    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  )
-  for (let i = 1; i <= a.length; i++)
-    for (let j = 1; j <= b.length; j++)
+  const a = original.trim().split(' ').filter(Boolean)
+  const b = corrected.trim().split(' ').filter(Boolean)
+  const m = a.length, n = b.length
+  const dp: number[][] = []
+  for (let i = 0; i <= m; i++) {
+    dp[i] = []
+    for (let j = 0; j <= n; j++) {
+      if (i === 0) dp[i][j] = j
+      else if (j === 0) dp[i][j] = i
+      else dp[i][j] = 0
+    }
+  }
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
       dp[i][j] = a[i-1] === b[j-1]
         ? dp[i-1][j-1]
         : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
 
   const tokens: DiffToken[] = []
-  let i = a.length, j = b.length
+  let i = m, j = n
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && a[i-1] === b[j-1]) {
       tokens.unshift({ text: a[i-1], type: 'equal' }); i--; j--
@@ -51,34 +53,19 @@ function diffWords(original: string, corrected: string): DiffToken[] {
   return tokens
 }
 
-function DiffView({ original, corrected }: { original: string; corrected: string }) {
+function DiffOutput({ original, corrected }: { original: string; corrected: string }) {
   const tokens = diffWords(original, corrected)
-  const hasChanges = tokens.some(t => t.type !== 'equal')
   return (
-    <div className={styles.diffRow}>
-      <div className={styles.diffCol}>
-        <span className={styles.diffLabel}>original</span>
-        <p className={styles.diffText}>
-          {tokens.map((t, i) => {
-            if (t.type === 'removed') return <span key={i} className={styles.removed}>{t.text} </span>
-            if (t.type === 'equal')   return <span key={i}>{t.text} </span>
-            return null
-          })}
-        </p>
-      </div>
-      <div className={styles.diffCol}>
-        <span className={styles.diffLabel}>
-          corregido {hasChanges && <span className={styles.diffBadge}>con cambios</span>}
-        </span>
-        <p className={styles.diffText}>
-          {tokens.map((t, i) => {
-            if (t.type === 'added') return <span key={i} className={styles.added}>{t.text} </span>
-            if (t.type === 'equal') return <span key={i}>{t.text} </span>
-            return null
-          })}
-        </p>
-      </div>
-    </div>
+    <p style={{ margin: 0, lineHeight: 1.6 }}>
+      {tokens.map((t, i) => {
+        const space = i < tokens.length - 1 ? ' ' : ''
+        if (t.type === 'added')
+          return <span key={i} className={styles.added}>{t.text}</span>
+        if (t.type === 'equal')
+          return <span key={i}>{t.text}{space}</span>
+        return null
+      })}
+    </p>
   )
 }
 
@@ -103,7 +90,9 @@ export default function Home() {
     if (running) { abortRef.current = true; return }
     const lines = input.split('\n').filter(l => l.trim())
     if (!lines.length) return
-    const initial: LineResult[] = lines.map(l => ({ original: l, output: '', status: 'pending' }))
+    const initial: LineResult[] = lines.map(l => ({
+      original: l, output: '', status: 'pending'
+    }))
     setResults(initial)
     setRunning(true)
     setElapsed(null)
@@ -128,7 +117,8 @@ export default function Home() {
       } catch (e: any) {
         updateLine(i, { status: 'error', error: e.message, output: '' })
       }
-      setElapsed(`${i + 1}/${lines.length} líneas · ${((Date.now()-t0)/1000).toFixed(1)}s`)
+      const s = ((Date.now() - t0) / 1000).toFixed(1)
+      setElapsed(`${i + 1}/${lines.length} líneas · ${s}s`)
     }
     setRunning(false)
   }
@@ -147,60 +137,108 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <div className={styles.ornament}>✦</div>
+          <h1 className={styles.title}>Transcriptor Paleográfico</h1>
+          <p className={styles.subtitle}>
+            Normalización de manuscritos históricos · MT5 fine-tuneado
+          </p>
+          <div className={styles.ornament}>✦</div>
+        </div>
+        <div className={styles.divider} />
+      </header>
+
       <div className={styles.controls}>
         <label className={styles.controlLabel}>
           Tokens máx.
-          <input type="number" className={styles.numberInput}
-            value={maxTokens} min={32} max={512}
-            onChange={e => setMaxTokens(Number(e.target.value))} />
+          <input
+            type="number"
+            className={styles.numberInput}
+            value={maxTokens}
+            min={32}
+            max={512}
+            onChange={e => setMaxTokens(Number(e.target.value))}
+          />
         </label>
-        <button className={styles.btnGhost} onClick={() => setInput(EXAMPLE)}>cargar ejemplo</button>
+        <button className={styles.btnGhost} onClick={() => setInput(EXAMPLE)}>
+          cargar ejemplo
+        </button>
       </div>
 
-      <div className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <span className={styles.panelLabel}>Texto paleográfico</span>
-          <span className={styles.panelHint}>una oración por línea</span>
+      <div className={styles.columns}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <span className={styles.panelLabel}>Texto paleográfico</span>
+            <span className={styles.panelHint}>una oración por línea</span>
+          </div>
+          <textarea
+            className={styles.textarea}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder={`Pega el texto paleográfico aquí.\n\nCada línea se procesará de\nforma independiente.`}
+            spellCheck={false}
+          />
         </div>
-        <textarea
-          className={styles.textarea}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder={'Pega el texto paleográfico aquí.\n\nCada línea se procesará de forma independiente.'}
-          spellCheck={false}
-        />
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <span className={styles.panelLabel}>Texto normalizado</span>
+            {doneCount > 0 && (
+              <button className={styles.btnGhost} onClick={copyAll}>copiar todo</button>
+            )}
+          </div>
+          <div className={styles.outputScroll} ref={outputRef}>
+            {results.length === 0 ? (
+              <div className={styles.emptyState}>
+                <span className={styles.emptyGlyph}>⟿</span>
+                <span>el resultado aparecerá aquí</span>
+              </div>
+            ) : (
+              results.map((r, i) => (
+                <div
+                  key={i}
+                  data-row={i}
+                  className={`${styles.lineRow} ${styles[`row_${r.status}`]}`}
+                >
+                  <div className={styles.lineOrig}>{r.original}</div>
+                  <div className={styles.lineOut}>
+                    {r.status === 'pending' && (
+                      <span className={styles.pending}>en espera…</span>
+                    )}
+                    {r.status === 'running' && (
+                      <span className={styles.running}>
+                        <span className={styles.spinner} />
+                        procesando…
+                      </span>
+                    )}
+                    {r.status === 'done' && (
+                      <DiffOutput original={r.original} corrected={r.output} />
+                    )}
+                    {r.status === 'error' && (
+                      <span className={styles.errorText}>⚠ {r.error}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
 
       <div className={styles.toolbar}>
-        <button className={running ? styles.btnStop : styles.btnRun}
-          onClick={run} disabled={!input.trim() && !running}>
+        <button
+          className={running ? styles.btnStop : styles.btnRun}
+          onClick={run}
+          disabled={!input.trim() && !running}
+        >
           {running ? '◼ detener' : '▶ transcribir'}
         </button>
-        <button className={styles.btnSecondary} onClick={clear} disabled={running}>limpiar</button>
-        {doneCount > 0 && <button className={styles.btnGhost} onClick={copyAll}>copiar corregido</button>}
+        <button className={styles.btnSecondary} onClick={clear} disabled={running}>
+          limpiar
+        </button>
         {elapsed && <span className={styles.stat}>{elapsed}</span>}
       </div>
-
-      {results.length > 0 && (
-        <div className={styles.outputSection} ref={outputRef}>
-          <div className={styles.outputHeader}>
-            <span className={styles.panelLabel}>Resultado</span>
-            <span className={styles.panelHint}>
-              <span className={styles.removedLegend}>tachado</span> = original ·{' '}
-              <span className={styles.addedLegend}>subrayado</span> = corregido
-            </span>
-          </div>
-          {results.map((r, i) => (
-            <div key={i} data-row={i} className={`${styles.resultBlock} ${styles['row_' + r.status]}`}>
-              <div className={styles.lineNum}>línea {i + 1}</div>
-              {r.status === 'pending' && <p className={styles.pending}>en espera…</p>}
-              {r.status === 'running' && <p className={styles.running}><span className={styles.spinner} />procesando…</p>}
-              {r.status === 'done' && <DiffView original={r.original} corrected={r.output} />}
-              {r.status === 'error' && <p className={styles.errorText}>⚠ {r.error}</p>}
-            </div>
-          ))}
-        </div>
-      )}
     </main>
   )
 }
