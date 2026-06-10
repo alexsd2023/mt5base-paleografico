@@ -65,25 +65,10 @@ function diffWords(original: string, corrected: string): DiffToken[] {
   return tokens
 }
 
-function DiffOrig({ original, corrected }: { original: string; corrected: string }) {
+function DiffView({ original, corrected }: { original: string; corrected: string }) {
   const tokens = diffWords(original, corrected)
   return (
-    <p style={{ margin: 0, lineHeight: 1.5, fontFamily: 'inherit', fontSize: 'inherit', fontStyle: 'italic' }}>
-      {tokens.map((t, i) => {
-        if (t.type === 'added') return null
-        const space = i < tokens.length - 1 ? ' ' : ''
-        if (t.type === 'removed')
-          return <span key={i} className={styles.removed}>{t.text}{space}</span>
-        return <span key={i}>{t.text}{space}</span>
-      })}
-    </p>
-  )
-}
-
-function DiffOutput({ original, corrected }: { original: string; corrected: string }) {
-  const tokens = diffWords(original, corrected)
-  return (
-    <p style={{ margin: 0, lineHeight: 1.5, fontFamily: 'inherit', fontSize: 'inherit' }}>
+    <p style={{ margin: 0, lineHeight: 1.6, fontFamily: 'inherit', fontSize: 'inherit' }}>
       {tokens.map((t, i) => {
         const space = i < tokens.length - 1 ? ' ' : ''
         if (t.type === 'removed')
@@ -228,11 +213,6 @@ export default function Home() {
                   data-row={i}
                   className={`${styles.lineRow} ${styles[`row_${r.status}`]}`}
                 >
-                  <div className={styles.lineOrig}>
-                    {r.status === 'done'
-                      ? <DiffOrig original={r.original} corrected={r.output} />
-                      : r.original}
-                  </div>
                   <div className={styles.lineOut}>
                     {r.status === 'pending' && (
                       <span className={styles.pending}>en espera…</span>
@@ -244,7 +224,7 @@ export default function Home() {
                       </span>
                     )}
                     {r.status === 'done' && (
-                      <DiffOutput original={r.original} corrected={r.output} />
+                      <DiffView original={r.original} corrected={r.output} />
                     )}
                     {r.status === 'error' && (
                       <span className={styles.errorText}>⚠ {r.error}</span>
