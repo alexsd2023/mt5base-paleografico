@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import Nav from './Nav'
 
 export const metadata: Metadata = {
   title: 'Transcriptor Paleográfico',
@@ -17,7 +18,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <Nav />
+        {children}
+      </body>
     </html>
   )
 }
