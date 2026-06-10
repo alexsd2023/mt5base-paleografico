@@ -229,7 +229,8 @@ export default function BatchPage() {
     const initial: DocResult[] = []
     for (const hf of htrFiles) {
       const htrLines = (await readFile(hf)).split('\n').filter(l => l.trim())
-      const gtFile   = gtFiles.find(g => g.name === hf.name)
+      const stem = (name: string) => name.replace(/.htr.txt$/i, '').replace(/.gt.txt$/i, '').replace(/.txt$/i, '')
+      const gtFile   = gtFiles.find(g => stem(g.name) === stem(hf.name))
       const gtLines  = gtFile ? (await readFile(gtFile)).split('\n').filter(l => l.trim()) : []
       initial.push({
         name: hf.name, cer: 0, wer: 0, chrf: 0,
