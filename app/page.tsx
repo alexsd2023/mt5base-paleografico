@@ -237,7 +237,7 @@ export default function Home() {
 
     for (let di = 0; di < initial.length; di++) {
       if (abortRef.current) break
-      setExpanded(prev => new Set([...prev, initial[di].name]))
+      setExpanded(prev => { const s = new Set(prev); s.add(initial[di].name); return s; })
       for (let li = 0; li < initial[di].lines.length; li++) {
         if (abortRef.current) break
         updateLine(di, li, { status: 'running' })
