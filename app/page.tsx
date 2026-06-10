@@ -66,8 +66,8 @@ function calcChrF(pred: string, ref: string, n = 6, beta = 2): number {
     const refG  = getNgrams(ref, ng)
     let matches = 0
     predG.forEach((cnt, gram) => { matches += Math.min(cnt, refG.get(gram) || 0) })
-    const predTotal = [...predG.values()].reduce((a, b) => a + b, 0)
-    const refTotal  = [...refG.values()].reduce((a, b) => a + b, 0)
+    const predTotal = Array.from(predG.values()).reduce((a, b) => a + b, 0)
+    const refTotal  = Array.from(refG.values()).reduce((a, b) => a + b, 0)
     const p = predTotal ? matches / predTotal : 0
     const r = refTotal  ? matches / refTotal  : 0
     const f = (p + r) ? (1 + beta*beta) * p * r / (beta*beta * p + r) : 0
