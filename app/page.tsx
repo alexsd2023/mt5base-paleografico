@@ -73,10 +73,10 @@ function OrigLine({ original, corrected }: { original: string; corrected: string
       {tokens.map((t, i) => {
         const space = i < tokens.length - 1 ? ' ' : ''
         if (t.type === 'removed')
-          return <span key={i} className={styles.removed}>{t.text}{space}</span>
+          return <span key={i} style={{ textDecoration: 'line-through', color: '#a32d2d', background: '#fcebeb', borderRadius: '2px', padding: '0 1px' }}>{t.text}{space}</span>
         if (t.type === 'equal')
           return <span key={i}>{t.text}{space}</span>
-        return null // no mostrar added en la línea original
+        return null
       })}
     </p>
   )
@@ -90,10 +90,10 @@ function CorrLine({ original, corrected }: { original: string; corrected: string
       {tokens.map((t, i) => {
         const space = i < tokens.length - 1 ? ' ' : ''
         if (t.type === 'added')
-          return <span key={i} className={styles.added}>{t.text}{space}</span>
+          return <span key={i} style={{ textDecoration: 'underline', textUnderlineOffset: '3px', color: '#2d5a1b', background: '#e8f0e0', borderRadius: '2px', padding: '0 1px' }}>{t.text}{space}</span>
         if (t.type === 'equal')
           return <span key={i}>{t.text}{space}</span>
-        return null // no mostrar removed en la línea corregida
+        return null
       })}
     </p>
   )
