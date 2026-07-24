@@ -4,6 +4,12 @@ import { useState, useRef, useCallback } from 'react'
 import styles from './page.module.css'
 
 type LineStatus = 'idle' | 'pending' | 'running' | 'done' | 'error'
+type ModelId = 'mt5' | 'latamgpt'
+
+const MODELS: { id: ModelId; label: string }[] = [
+  { id: 'mt5', label: 'mT5 (fine-tuneado)' },
+  { id: 'latamgpt', label: 'LatamGPT (70B)' },
+]
 
 interface LineResult {
   original: string
@@ -104,6 +110,7 @@ export default function Home() {
   const [results, setResults] = useState<LineResult[]>([])
   const [running, setRunning] = useState(false)
   const [maxTokens, setMaxTokens] = useState(128)
+  const [model, setModel] = useState<ModelId>('mt5')
   const [elapsed, setElapsed] = useState<string | null>(null)
   const abortRef = useRef(false)
   const outputRef = useRef<HTMLDivElement>(null)
@@ -139,7 +146,7 @@ export default function Home() {
         const res = await fetch('/api/transcribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: lines[i], max_new_tokens: maxTokens }),
+          body: JSON.stringify({ text: lines[i], max_new_tokens: maxTokens, model }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
@@ -180,6 +187,21 @@ export default function Home() {
       </header>
 
       <div className={styles.controls}>
+        <div className={styles.modelSwitch} role="radiogroup" aria-label="Modelo">
+          {MODELS.map(m => (
+            <button
+              key={m.id}
+              type="button"
+              role="radio"
+              aria-checked={model === m.id}
+              className={`${styles.modelBtn} ${model === m.id ? styles.modelBtnActive : ''}`}
+              onClick={() => setModel(m.id)}
+              disabled={running}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
         <label className={styles.controlLabel}>
           Tokens máx.
           <input

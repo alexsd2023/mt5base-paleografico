@@ -3,6 +3,12 @@
 import { useState, useRef, useCallback } from 'react'
 
 type LineStatus = 'pending' | 'running' | 'done' | 'error'
+type ModelId = 'mt5' | 'latamgpt'
+
+const MODELS: { id: ModelId; label: string }[] = [
+  { id: 'mt5', label: 'mT5 (fine-tuneado)' },
+  { id: 'latamgpt', label: 'LatamGPT (70B)' },
+]
 
 interface LineResult {
   original: string
@@ -194,6 +200,7 @@ export default function BatchPage() {
   const [running,  setRunning]  = useState(false)
   const [elapsed,  setElapsed]  = useState<string | null>(null)
   const [maxTokens, setMaxTokens] = useState(128)
+  const [model, setModel] = useState<ModelId>('mt5')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const abortRef = useRef(false)
 
@@ -252,7 +259,7 @@ export default function BatchPage() {
         try {
           const res = await fetch('/api/transcribe', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: initial[di].lines[li].original, max_new_tokens: maxTokens }),
+            body: JSON.stringify({ text: initial[di].lines[li].original, max_new_tokens: maxTokens, model }),
           })
           const data = await res.json()
           if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
@@ -299,6 +306,9 @@ export default function BatchPage() {
     btnStop:    { padding: '8px 24px', fontSize: '13px', background: 'transparent', color: 'var(--error)', border: '1px solid var(--error)', borderRadius: '5px', cursor: 'pointer' },
     btnSec:     { padding: '8px 16px', fontSize: '13px', background: 'transparent', color: 'var(--ink-muted)', border: '1px solid var(--border-light)', borderRadius: '5px', cursor: 'pointer' },
     btnGhost:   { fontSize: '12px', padding: '6px 12px', background: 'transparent', border: '1px solid var(--border-light)', borderRadius: '4px', color: 'var(--ink-muted)', cursor: 'pointer' },
+    modelSwitch: { display: 'flex', gap: '2px', padding: '2px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--parchment-dark)' } as React.CSSProperties,
+    modelBtn:   { fontSize: '12px', padding: '5px 12px', background: 'transparent', border: 'none', borderRadius: '4px', color: 'var(--ink-muted)', cursor: 'pointer' } as React.CSSProperties,
+    modelBtnActive: { background: '#fff', color: 'var(--ink)', boxShadow: '0 1px 3px rgba(0,0,0,0.12)', fontWeight: 500 } as React.CSSProperties,
     docBlock:   { border: '1px solid var(--border)', borderRadius: '6px', marginBottom: '1rem', background: 'var(--parchment)', overflow: 'hidden' },
     docHeader:  { padding: '10px 14px', background: 'var(--parchment-dark)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', flexWrap: 'wrap' as const, gap: '8px' },
     // 3-column table
@@ -354,6 +364,21 @@ export default function BatchPage() {
         </button>
         <button style={css.btnSec} onClick={clear} disabled={running}>limpiar</button>
         {doneCount > 0 && <button style={css.btnGhost} onClick={exportTSV}>↓ exportar TSV</button>}
+        <div style={css.modelSwitch} role="radiogroup" aria-label="Modelo">
+          {MODELS.map(m => (
+            <button
+              key={m.id}
+              type="button"
+              role="radio"
+              aria-checked={model === m.id}
+              style={model === m.id ? { ...css.modelBtn, ...css.modelBtnActive } : css.modelBtn}
+              onClick={() => setModel(m.id)}
+              disabled={running}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--ink-muted)', marginLeft: 'auto' }}>
           Max tokens
           <input type="number" value={maxTokens} min={32} max={512}
